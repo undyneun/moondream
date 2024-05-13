@@ -411,6 +411,20 @@ class PhiAttention(nn.Module):
 
         if not output_attentions:
             attn_weights = None
+        else:
+            attn_weights = torch.matmul(query_states, key_states.transpose(2, 3)) / math.sqrt(self.head_dim)
+            if attention_mask is not None:
+                if q_len == 1:  # inference with cache
+                    if len(attention_mask.size()) == 4:
+                        attention_mask = attention_mask[:, :, -1:, :]
+                    else:
+                        attention_mask = attention_mask[:, -1:, :]
+                attn_weights = attn_weights + attention_mask
+                attn_weights = torch.max(
+                    attn_weights, torch.tensor(torch.finfo(attn_weights.dtype).min)
+                )
+        
+            attn_weights = torch.nn.functional.softmax(attn_weights, dim=-1)
 
         return attn_output, attn_weights, past_key_value
 
@@ -549,6 +563,20 @@ class PhiFlashAttention2(PhiAttention):
 
         if not output_attentions:
             attn_weights = None
+        else:
+            attn_weights = torch.matmul(query_states, key_states.transpose(2, 3)) / math.sqrt(self.head_dim)
+            if attention_mask is not None:
+                if q_len == 1:  # inference with cache
+                    if len(attention_mask.size()) == 4:
+                        attention_mask = attention_mask[:, :, -1:, :]
+                    else:
+                        attention_mask = attention_mask[:, -1:, :]
+                attn_weights = attn_weights + attention_mask
+                attn_weights = torch.max(
+                    attn_weights, torch.tensor(torch.finfo(attn_weights.dtype).min)
+                )
+        
+            attn_weights = torch.nn.functional.softmax(attn_weights, dim=-1)
 
         return attn_output, attn_weights, past_key_value
 
